@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Very simple HTTP server in python for logging requests
+Very simple HTTP server in python for processing local cryosparc notifications
 Usage::
     ./server.py [<port>]
 """
@@ -33,23 +33,23 @@ def job2username(p: str, j: str) -> str:
         )
         if rv is None:
             raise NtfyException(
-                "Error parsing response of cli.get_job(p={p}, j={j}): no 'created_by_user_id' field"
+                f"Error parsing response of cli.get_job(p={p}, j={j}): no 'created_by_user_id' field"
             )
         return rv
     except:
-        raise NtfyException("Couldn't find user for P={p}, J={j}")
+        raise NtfyException(f"Couldn't find user for P={p}, J={j}")
 
 
 def job2type(p: str, j: str) -> str:
     try:
-        rv = cli.get_username_by_id(cli.get_job(p.upper(), j.upper()).get("job_type"))
+        rv = cli.get_job(p.upper(), j.upper()).get("job_type")
         if rv is None:
             raise NtfyException(
-                "Error parsing response of cli.get_job(p={p}, j={j}): no 'job_type' field"
+                f"Error parsing response of cli.get_job(p={p}, j={j}): no 'job_type' field"
             )
         return rv
     except:
-        raise NtfyException("Couldn't find user for P={p}, J={j}")
+        raise NtfyException(f"Couldn't find user for P={p}, J={j}")
 
 
 def get_project_title(p: str) -> str:
@@ -57,7 +57,7 @@ def get_project_title(p: str) -> str:
         rv = cli.get_project(p).get("title", p)
         return rv
     except ValueError:
-        raise NtfyException("Couldn't get project name for P={p}")
+        raise NtfyException(f"Couldn't get project name for P={p}")
 
 
 class Ntfy:
@@ -135,6 +135,8 @@ class S(BaseHTTPRequestHandler):
         )  # <--- Gets the size of data
         post_data = self.rfile.read(content_length)  # <--- Gets the data itself
         data = json.loads(post_data.decode("utf-8"))
+
+        logging.info(f"Got following json:\n{data}")
         logging.info(
             "POST request,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n",
             str(self.path),
@@ -142,7 +144,10 @@ class S(BaseHTTPRequestHandler):
             data,
         )
 
-        ntfy.process(data)
+        try:
+            ntfy.process(data)
+        except NtfyException as e:
+            logging.error(f"Got error {e} while trying to process data={data}")
 
         self._set_response()
         self.wfile.write("POST request for {}".format(self.path).encode("utf-8"))
