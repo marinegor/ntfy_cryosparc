@@ -147,7 +147,9 @@ class S(BaseHTTPRequestHandler):
         try:
             ntfy.process(data)
         except NtfyException as e:
-            logging.error(f"Got error {e} while trying to process data={data}")
+            message = f"Got error {e} while trying to process data={data}"
+            ntfy.post_alert(message=message, header="Alert", user=ntfy.admin)
+            logging.error(message)
 
         self._set_response()
         self.wfile.write("POST request for {}".format(self.path).encode("utf-8"))
