@@ -1,6 +1,8 @@
 # CryoSPARC 
 
 Very simple HTTP server in pure python for processing local cryosparc notifications and posting them to a ntfy.sh channel.
+It sends a push notification when a job that you've created, has completed (see [Screenshots](/Screenshots). 
+If it fails to process a message from CryoSPARC instance, it sends respective notification to an admin channel.
 
 ## Installation
 
@@ -13,6 +15,10 @@ git clone https://github.com/marinegor/ntfy_cryosparc.git
 cd ntfy_cryosparc.git
 cryosparcm call python3 server.py
 ```
+4. Install ntfy app on your mobile (iOS, Android) and add your channel there. It would look like this: <url>/cs_<hostname>_<username>, where:
+ - url -- ntfy server (default would be ntfy.sh)
+ - hostname: your master node name (can be changed, but equals to `hostname` of master node)
+ - username: can be found in your profile settings on CryoSPARC web-interface (or you can ask your admin about it).
 
 ## Usage
 
