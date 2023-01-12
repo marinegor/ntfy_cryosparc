@@ -4,6 +4,13 @@ Very simple HTTP server in pure python for processing local cryosparc notificati
 It sends a push notification when a job that you've created, has completed (see [Screenshots](/Screenshots). 
 If it fails to process a message from CryoSPARC instance, it sends respective notification to an admin channel.
 
+| :exclamation:  Warning   |
+|--------------------------|
+
+You can easily use this server with a default ntfy.sh server, but remember that anyone can potentially read messages there, and thereby have access to your project names in your CryoSPARC instance, if they guess your channel name. 
+We personally use security-by-obscurity -- our `hostname` is a combination of random chars that is almost impossible to guess and hence find. 
+However, if you think it's not enough for you, you can consider running a self-hosted version of ntfy.sh: [instructions](https://docs.ntfy.sh/install/).
+
 ## Installation
 
 1. Set the variable `CRYOSPARC_SLACK_WEBHOOK_URL` in your `config.sh (see [cryosparc documentation](https://guide.cryosparc.com/setup-configuration-and-management/management-and-monitoring/environment-variables#cryosparc_master-config.sh) and [my thread](https://discuss.cryosparc.com/t/push-notifications-for-long-jobs/9827/2) on discuss forum). Note that you must restart your cryosparc instance after that.
@@ -16,9 +23,11 @@ cd ntfy_cryosparc.git
 cryosparcm call python3 server.py
 ```
 4. Install ntfy app on your mobile (iOS, Android) and add your channel there. It would look like this: <url>/cs_<hostname>_<username>, where:
+
  - url -- ntfy server (default would be ntfy.sh)
  - hostname: your master node name (can be changed, but equals to `hostname` of master node)
  - username: can be found in your profile settings on CryoSPARC web-interface (or you can ask your admin about it).
+
 
 ## Usage
 
