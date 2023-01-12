@@ -1,4 +1,4 @@
-# CryoSPARC 
+# ntfy_cryosparc
 
 Very simple HTTP server in pure python for processing local cryosparc notifications and posting them to a ntfy.sh channel.
 It sends a push notification when a job that you've created, has completed (see [Screenshots](/Screenshots). 
