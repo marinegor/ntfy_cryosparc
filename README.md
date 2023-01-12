@@ -8,7 +8,7 @@ Very simple HTTP server in pure python for processing local cryosparc notificati
 2. Login as `cryosparcuser` on your master node
 3. Clone the repo and start the script:
 
-```bash
+```
 git clone https://github.com/marinegor/ntfy_cryosparc.git
 cd ntfy_cryosparc.git
 cryosparcm call python3 server.py
@@ -18,7 +18,7 @@ cryosparcm call python3 server.py
 
 Usage:
 
-```bash
+```
 usage: cryosparcm call python3 server.py [-h] [--url URL] [--admin ADMIN] [--hostname HOSTNAME]
 
 optional arguments:
@@ -32,3 +32,8 @@ optional arguments:
 ```
 
 You can check if the notifications are actually sent via interrupting a `server.py` with Ctrl+C -- it sends a test notification to the admin channel before finishing the process.
+
+## Screenshots
+After you've set it up running, your channel would look somewhat like this:
+
+![example](./ntfy_cryosparc_screenshot.png)
