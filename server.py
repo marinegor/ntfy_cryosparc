@@ -1,14 +1,54 @@
 #!/usr/bin/env python3
 """
-Very simple HTTP server in python for processing local cryosparc notifications
+Very simple HTTP server in pure python for processing local cryosparc notifications
 Usage::
     ./server.py [<port>]
 """
-from http.server import BaseHTTPRequestHandler, HTTPServer
+
+# ----------------------
+# The logic starts here, since the mode of running within cryosparc environment
+# doesn't work properly with `if __name__ == 'main'` idiom
+# ----------------------
+
+import socket
+import argparse
 import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
+
+# Custom usage message to run within cryosparc context
+usage = "usage: cryosparcm call python3 server.py [-h] [--url URL] [--admin ADMIN] [--hostname HOSTNAME]"
+
+
+parser = argparse.ArgumentParser(
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter, usage=usage
+)
+parser.add_argument(
+    "--url",
+    type=str,
+    default="https://ntfy.sh",
+    help="location of ntfy server (change from default if you're self-hosting it",
+)
+parser.add_argument(
+    "--admin",
+    type=str,
+    default="admin",
+    help="username for admin messages (like when a notification is failed to get parsed)",
+)
+parser.add_argument(
+    "--hostname",
+    type=str,
+    default=socket.gethostname(),
+    help="master node hostname, is used in notification channel name: <url>/cs_<hostname>_<username>",
+)
+
+args = parser.parse_args()
+
+# ----------------------
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import requests
 import os
-import socket
 import json
 from typing import Tuple, Optional
 
@@ -62,16 +102,20 @@ def get_project_title(p: str) -> str:
 
 class Ntfy:
     def __init__(
-        self, url: str = "https://ntfy.sh", hostname=None, admin: str = "marinegor"
+        self,
+        url: str,
+        hostname: str,
+        admin: str,
     ):
-        if hostname is None:
-            hostname = socket.gethostname()
         self.source = f"{url}/cs_{hostname}"
         self.admin = admin
         logging.info(f'Posting alerts to {self.source}_"your_cryosparc_username"')
 
     def __repr__(self) -> str:
-        return f"{Ntfy(url={self.url}, admin={self.admin})}"
+        return f"Ntfy(source={self.source}, admin={self.admin})"
+
+    def __str__(self) -> str:
+        return repr(self)
 
     def create_message_from_response(self, d: dict) -> Tuple[str, str, str]:
         assert "text" in d, d
@@ -92,10 +136,11 @@ class Ntfy:
         assert priority in ("max", "urgent", "high", "default", "low", "min"), priority
 
         url = f"{self.source}_{user}"
+        headers = {"Title": header, "Priority": priority}
+        target = f"{self.source}_{user}"
+        logging.info(f"posting to url={url} message={message} with headers={headers}")
         rv = requests.post(
-            f"{self.source}_{user}",
-            data=message.encode(encoding="utf-8"),
-            headers={"Title": header, "Priority": priority},
+            target, data=message.encode(encoding="utf-8"), headers=headers
         )
         return rv
 
@@ -163,15 +208,21 @@ def run(server_class=HTTPServer, handler_class=S, port: int = 8000):
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        pass
+        ntfy.post_default(
+            message=f"KeyboardInterrupt detected, ntfy instance: {ntfy}",
+            header="info",
+            user=ntfy.admin,
+        )
     httpd.server_close()
     logging.info("Stopping httpd...\n")
 
 
-logging.basicConfig(level=logging.DEBUG)
 cs_webhook = os.getenv("CRYOSPARC_SLACK_WEBHOOK_URL")
 logging.info(f"CRYOSPARC_SLACK_WEBHOOK_URL={cs_webhook}")
 port = int(cs_webhook.split(":")[-1])
 
-ntfy = Ntfy()
+ntfy = Ntfy(url=args.url, hostname=args.hostname, admin=args.admin)
+
+logging.info(f"Running instance: {ntfy}")
+logging.info(f"Admin notifications channel: {ntfy.source}_{ntfy.admin}")
 run(port=port)
