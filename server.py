@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Very simple HTTP server in pure python for processing local cryosparc notifications
-Usage::
-    ./server.py [<port>]
+Usage:
+    cryosparcm call python3 server.py [-h] [--url URL] [--admin ADMIN] [--hostname HOSTNAME]
 """
 
 # ----------------------
@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 # Custom usage message to run within cryosparc context
-usage = "usage: cryosparcm call python3 server.py [-h] [--url URL] [--admin ADMIN] [--hostname HOSTNAME]"
+usage = "cryosparcm call python3 server.py [-h] [--url URL] [--admin ADMIN] [--hostname HOSTNAME]"
 
 
 parser = argparse.ArgumentParser(
