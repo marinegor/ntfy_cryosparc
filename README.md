@@ -14,6 +14,13 @@ However, if you think it's not enough for you, you can consider running a self-h
 ## Installation
 
 1. Set the variable `CRYOSPARC_SLACK_WEBHOOK_URL` in your `config.sh (see [cryosparc documentation](https://guide.cryosparc.com/setup-configuration-and-management/management-and-monitoring/environment-variables#cryosparc_master-config.sh) and [my thread](https://discuss.cryosparc.com/t/push-notifications-for-long-jobs/9827/2) on discuss forum). Note that you must restart your cryosparc instance after that.
+
+Namely, your `config.sh` should contain this line:
+
+```bash
+export CRYOSPARC_SLACK_WEBHOOK_URL="http://localhost:8000"
+```
+
 2. Login as `cryosparcuser` on your master node
 3. Clone the repo and start the script:
 
