@@ -10,9 +10,16 @@ Usage:
 # doesn't work properly with `if __name__ == 'main'` idiom
 # ----------------------
 
-import socket
 import argparse
+import json
 import logging
+import os
+import socket
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Optional, Tuple
+
+import requests  # type: ignore
+from cryosparc_compute.client import CommandClient  # type: ignore
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -42,18 +49,16 @@ parser.add_argument(
     default=socket.gethostname(),
     help="master node hostname, is used in notification channel name: <url>/cs_<hostname>_<username>",
 )
+parser.add_argument(
+    "--use_user",
+    type=bool,
+    default=True,
+    help="if you want to separate notifications into different user channels or not",
+)
 
 args = parser.parse_args()
 
 # ----------------------
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import requests
-import os
-import json
-from typing import Tuple, Optional
-
-from cryosparc_compute.client import CommandClient
-
 cli = CommandClient(
     os.getenv("CRYOSPARC_MASTER_HOSTNAME"),
     int(os.getenv("CRYOSPARC_COMMAND_CORE_PORT")),
@@ -76,7 +81,7 @@ def job2username(p: str, j: str) -> str:
                 f"Error parsing response of cli.get_job(p={p}, j={j}): no 'created_by_user_id' field"
             )
         return rv
-    except:
+    except Exception:
         raise NtfyException(f"Couldn't find user for P={p}, J={j}")
 
 
@@ -88,7 +93,7 @@ def job2type(p: str, j: str) -> str:
                 f"Error parsing response of cli.get_job(p={p}, j={j}): no 'job_type' field"
             )
         return rv
-    except:
+    except Exception:
         raise NtfyException(f"Couldn't find user for P={p}, J={j}")
 
 
@@ -106,10 +111,16 @@ class Ntfy:
         url: str,
         hostname: str,
         admin: str,
+        use_user: bool = True,
     ):
         self.source = f"{url}/cs_{hostname}"
+        self.use_user = use_user
         self.admin = admin
-        logging.info(f'Posting alerts to {self.source}_"your_cryosparc_username"')
+        logging.info(
+            f'Posting alerts to {self.source}_"your_cryosparc_username"'
+            if self.use_user
+            else "Posting alerts to {self.source}"
+        )
 
     def __repr__(self) -> str:
         return f"Ntfy(source={self.source}, admin={self.admin})"
@@ -117,7 +128,9 @@ class Ntfy:
     def __str__(self) -> str:
         return repr(self)
 
-    def create_message_from_response(self, d: dict) -> Tuple[str, str, str]:
+    def create_message_from_response(
+        self, d: dict, use_user: bool = True
+    ) -> Tuple[str, str, str]:
         assert "text" in d, d
         s = d["text"]
         project, job, *status = s.split()
@@ -129,15 +142,15 @@ class Ntfy:
         message = (
             f"Project: {get_project_title(project)}\nJob: {job_type}\nStatus: {status}"
         )
+        if not use_user:
+            message += f"\nUser: {user}"
 
         return user, header, message
 
-    def post(
-        self, header: str, message: str, user: str, priority: str, use_user: bool = True
-    ) -> Response:
+    def post(self, header: str, message: str, user: str, priority: str) -> Response:
         assert priority in ("max", "urgent", "high", "default", "low", "min"), priority
 
-        url = f"{self.source}_{user}" if use_user else self.source
+        url = f"{self.source}_{user}" if self.use_user else self.source
         headers = {"Title": header, "Priority": priority}
         logging.info(f"posting to url={url} message={message} with headers={headers}")
         rv = requests.post(url, data=message.encode(encoding="utf-8"), headers=headers)
@@ -151,7 +164,9 @@ class Ntfy:
 
     def process(self, data: dict) -> Optional[Response]:
         try:
-            user, header, message = self.create_message_from_response(data)
+            user, header, message = self.create_message_from_response(
+                data, use_user=self.use_user
+            )
         except Exception as e:
             msg = f"Error processing data={data}: {e.__repr__()}"
             self.post_alert(header="Alert", message=msg, user=self.admin)
@@ -217,10 +232,17 @@ def run(server_class=HTTPServer, handler_class=S, port: int = 8000):
 
 
 cs_webhook = os.getenv("CRYOSPARC_SLACK_WEBHOOK_URL")
+if cs_webhook is None:
+    raise NtfyException(
+        "CRYOSPARC_SLACK_WEBHOOK_URL is not set: expected http://localhost:port, got None"
+    )
+
 logging.info(f"CRYOSPARC_SLACK_WEBHOOK_URL={cs_webhook}")
 port = int(cs_webhook.split(":")[-1])
 
-ntfy = Ntfy(url=args.url, hostname=args.hostname, admin=args.admin)
+ntfy = Ntfy(
+    url=args.url, hostname=args.hostname, admin=args.admin, use_user=args.use_user
+)
 
 logging.info(f"Running instance: {ntfy}")
 logging.info(f"Admin notifications channel: {ntfy.source}_{ntfy.admin}")
