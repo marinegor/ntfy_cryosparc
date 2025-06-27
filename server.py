@@ -132,16 +132,15 @@ class Ntfy:
 
         return user, header, message
 
-    def post(self, header: str, message: str, user: str, priority: str) -> Response:
+    def post(
+        self, header: str, message: str, user: str, priority: str, use_user: bool = True
+    ) -> Response:
         assert priority in ("max", "urgent", "high", "default", "low", "min"), priority
 
-        url = f"{self.source}_{user}"
+        url = f"{self.source}_{user}" if use_user else self.source
         headers = {"Title": header, "Priority": priority}
-        target = f"{self.source}_{user}"
         logging.info(f"posting to url={url} message={message} with headers={headers}")
-        rv = requests.post(
-            target, data=message.encode(encoding="utf-8"), headers=headers
-        )
+        rv = requests.post(url, data=message.encode(encoding="utf-8"), headers=headers)
         return rv
 
     def post_default(self, header: str, message: str, user: str) -> Response:
