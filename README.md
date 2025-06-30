@@ -49,6 +49,8 @@ optional arguments:
                        self-hosting it (default: https://ntfy.sh)
   --admin ADMIN        username for admin messages (like when a notification
                        is failed to get parsed) (default: admin)
+  --use_user USE_USER  whether you want to send messages to each user separately
+                       or instead send them to a single channel (default: true, sends them separately)
   --hostname HOSTNAME  master node hostname, is used in notification channel
                        name: <url>/cs_<hostname>_<username> (default: cmm-1)
 ```
